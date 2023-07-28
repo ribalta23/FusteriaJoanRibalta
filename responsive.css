@@ -1,0 +1,69 @@
+@media (max-width: 1250px) {
+    .serveis {
+        margin: 0 20px;
+    }
+    .lloc {
+        margin: 0 20px;
+    }
+    footer {
+        margin: 0 20px;
+    }
+}
+
+@media (max-width: 1160px) {
+    .lloc {
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    .mapa {
+        width: 100%;
+    }
+    .map {
+        width: 100%;
+    }
+    .trobar {
+        width: 100%;
+        padding-top: 20px;
+    }
+}
+
+@media (max-width: 1160px) {
+    .left input {
+        width: 100%;
+    }
+}
+
+@media (max-width: 800px) {
+    .serveis {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .serveis h1 {
+        padding-bottom: 20px;
+    }
+    .serveisT {
+        width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+    .quisom p {
+        width: 70%;
+    }
+    .quisom div {
+        display: flex;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 600px) {
+    footer {
+        flex-direction: column;
+        padding: 20px 0;
+    }
+    footer p {
+        padding-bottom: 20px;
+    }
+}

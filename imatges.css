@@ -1,0 +1,17 @@
+#imatges > img {
+    border-radius: 8px;
+    width: 100%;
+    height: auto;
+    box-shadow: 0px 0px 30px black;
+}
+
+#imatges {
+    display: grid;
+    grid-template-columns: 
+        repeat(
+            auto-fit,
+            minmax(300px, 1fr)
+        );
+    gap: 40px;
+    padding: 100px 30px;
+}

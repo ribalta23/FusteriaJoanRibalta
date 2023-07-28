@@ -1,0 +1,302 @@
+* {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    box-sizing: border-box;
+    text-decoration: none;
+    font-family: Arial, Helvetica, sans-serif;
+    scroll-behavior: smooth;
+}
+.sotaheader {
+    height: 100px;
+}
+
+header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+    position: fixed;
+    box-shadow: 0px 15px 10px -15px #111;
+    background: white;
+    z-index: 10;
+}
+
+header img {
+    height: 80px;
+}
+
+.quisom {
+    padding-top: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+    color: rgb(26, 26, 26);
+    border-bottom: 1px solid rgb(173, 173, 173);
+}
+
+.quisom h1 {
+    font-size: 40px;
+    padding-bottom: 20px;
+}
+
+.quisom p {
+    font-size: 20px;
+    width: 50%;
+    padding-bottom: 20px;
+}
+
+.quisom button {
+    background: #EC7B13;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 5px;
+    font-size: 20px;
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-bottom: 40px;
+}
+.quisom button:hover {
+    background: #bb6617;
+}
+
+.serveis {
+    padding: 70px 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: auto;
+    max-width: 1200px;
+    color: rgb(26, 26, 26);
+}
+.serveisT {
+    width: 70%;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.serveisH {
+    margin-right: 20px;
+}
+
+.serveisH h3{
+    font-size: 20px;
+    padding-bottom: 5px;
+}
+.serveisH h1 {
+    font-size: 30px;
+}
+
+.lloc {
+    padding: 70px 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: auto;
+    max-width: 1200px;
+    color: rgb(26, 26, 26);
+}
+
+.trobar {
+    width: 45%;
+}
+
+.trobar h3 {
+    font-size: 20px;
+    padding-bottom: 5px;
+}
+
+.trobar h1{
+    font-size: 30px;
+}
+
+.trovarDiv {
+    margin-top: 10px;
+    border: 1px solid rgb(173, 173, 173);
+    padding: 20px;
+    border-radius: 5px;
+    align-items: center;
+    cursor: default;
+}
+
+.trovarDiv h2 {
+    font-size: 20px;
+    padding-bottom: 5px;
+}
+.trovarDiv p{
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.trovarDiv2 {
+    margin-top: 10px;
+    border: 1px solid rgb(173, 173, 173);
+    padding: 20px;
+    border-radius: 5px;
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.trovarDiv2 h2 {
+    font-size: 20px;
+    padding-bottom: 5px;
+}
+.trovarDiv2 i{
+    font-size: 30px;
+}
+
+.div2a {
+    color: rgb(26, 26, 26);
+}
+
+.wh {
+    color: #66b471;
+}
+
+.ig {
+    color: rgb(173, 50, 147);
+}
+
+.fk {
+    color: rgb(50, 52, 173);
+}
+
+.contacta {
+    display: flex;
+    max-width: 1200px;
+    margin: auto;
+    padding: 50px;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.formC {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+}
+
+.contacta h1 {
+    color: rgb(26, 26, 26);
+    font-size: 30px;
+    padding-bottom: 10px;
+}
+
+.contacta h3{
+    font-size: 15px;
+    padding: 10px;
+}
+
+.cf {
+    width: 100%;
+}
+
+.left input {
+    width: 33%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-bottom: 2px solid rgb(26, 26, 26);
+    border-right: none;
+    border-left: none;
+    border-top: none;
+}
+
+.left input:focus {
+    outline: none;
+    background: rgb(240, 240, 240);
+    border-bottom: 2px solid #EC7B13;
+}
+
+.right textarea {
+    min-width: 100%;
+    max-width: 100%;
+    width: 100%;
+    margin-bottom: 10px;
+    border-bottom: 2px solid rgb(26, 26, 26);
+    border-right: none;
+    border-left: none;
+    border-top: none;
+    padding: 10px;
+    margin-top: 20px;
+}
+
+.right textarea:focus {
+    outline: none;
+    background: rgb(240, 240, 240);
+    border-bottom: 2px solid #EC7B13;
+}
+
+#input-submit {
+    margin-top: 20px;
+    background: #EC7B13;
+    border: none;
+    padding: 15px;
+    width: 100%;
+    border-radius: 5px;
+    font-size: 20px;
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-bottom: 40px;
+}
+
+#input-submit:hover {
+    background: #bb6617;
+}
+
+footer {
+    padding: 40px 0;
+    border-top: 1px solid rgb(173, 173, 173);
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+    align-items: center;
+    max-width: 1200px;
+    margin: auto;
+    cursor: default;
+}
+
+footer p {
+    color: rgb(26, 26, 26);
+    font-weight: bold;
+}
+
+.legal {
+    width: 300px;
+    justify-content: space-between;
+    display: flex;
+    align-items: center;
+}
+
+.legal a {
+    color: rgb(26, 26, 26);
+    font-weight: bold;
+}
+
+.politica {
+    max-width: 1000px;
+    margin: auto;
+    padding: 100px 0px;
+    text-align: justify;
+    color: rgb(26, 26, 26);
+}
+.politica h1 {
+    font-size: 40px;
+    padding: 20px 0;
+}
+.politica h2 {
+    font-size: 30px;
+    padding: 15px 0;
+}
+
