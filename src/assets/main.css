@@ -1,0 +1,6 @@
+/* Add this to your existing CSS file */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Keep any existing CSS below */
