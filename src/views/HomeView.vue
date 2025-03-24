@@ -5,6 +5,7 @@ import HeaderComponent from '@/components/HeaderComponent.vue';
 import FooterComponent from '@/components/FooterComponent.vue';
 import { useSectionDetection } from '@/utils/sectionDetection';
 import { supabase } from '../supabase';
+import { useRoute } from 'vue-router';
 
 const formData = ref({
   name: '',
@@ -164,10 +165,10 @@ onMounted(() => {
                   <i class="fa-regular fa-comment-dots"></i>
                   Sol·licitar pressupost
                 </a>
-                <a href="/album" class="bg-transparent border-2 border-white hover:bg-white hover:text-gray-900 text-white font-medium px-8 py-4 rounded-lg transition-all flex items-center gap-2">
+                <router-link to="/album" class="bg-transparent border-2 border-white hover:bg-white hover:text-gray-900 text-white font-medium px-8 py-4 rounded-lg transition-all flex items-center gap-2">
                   <i class="fa-regular fa-images"></i>
                   Veure projectes
-                </a>
+                </router-link>
               </div>
             </div>
           </div>
@@ -359,15 +360,15 @@ onMounted(() => {
               <div class="pt-4">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Segueix-nos</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <a href="#" class="flex items-center justify-center sm:justify-start gap-2 px-4 py-3 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-all">
+                  <a href="https://wa.me/666590833" class="flex items-center justify-center sm:justify-start gap-2 px-4 py-3 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-all">
                     <i class="fa-brands fa-whatsapp text-xl"></i>
                     <span class="font-medium">WhatsApp</span>
                   </a>
-                  <a href="#" class="flex items-center justify-center sm:justify-start gap-2 px-4 py-3 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-all">
+                  <a href="https://www.instagram.com/fusteriajoanribalta/" class="flex items-center justify-center sm:justify-start gap-2 px-4 py-3 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition-all">
                     <i class="fa-brands fa-instagram text-xl"></i>
                     <span class="font-medium">Instagram</span>
                   </a>
-                  <a href="#" class="flex items-center justify-center sm:justify-start gap-2 px-4 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all">
+                  <a href="https://es-es.facebook.com/fusteriajoanribalta/" class="flex items-center justify-center sm:justify-start gap-2 px-4 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all">
                     <i class="fa-brands fa-facebook-f text-xl"></i>
                     <span class="font-medium">Facebook</span>
                   </a>

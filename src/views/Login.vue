@@ -57,12 +57,14 @@
 <script>
 import { ref } from 'vue';
 import { supabase } from '@/supabase';
+import { useRouter } from 'vue-router';
 
 export default {
   setup() {
     const email = ref('');
     const password = ref('');
     const error = ref('');
+    const router = useRouter();
 
     const login = async () => {
       const { error: loginError } = await supabase.auth.signInWithPassword({
@@ -73,7 +75,8 @@ export default {
         error.value = loginError.message;
       } else {
         error.value = '';
-        window.location.href = '/area-privada';
+        // Use router navigation instead of direct URL change
+        router.push('/area-privada');
       }
     };
 

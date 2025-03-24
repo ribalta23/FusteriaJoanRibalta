@@ -1,12 +1,13 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import AlbumView from '../views/AlbumView.vue'
 import AreaPrivada from '../views/AreaPrivada.vue'
 import Login from '../views/Login.vue'
+import PrivacyPolicyView from '../views/PrivacyPolicyView.vue'
 import { supabase } from '@/supabase';
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
@@ -27,6 +28,11 @@ const router = createRouter({
       path: '/area-privada', 
       component: AreaPrivada, 
       meta: { requiereAuth: true } 
+    },
+    {
+      path: '/privacitat',
+      name: 'privacy',
+      component: PrivacyPolicyView,
     },
   ],
 })

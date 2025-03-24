@@ -29,8 +29,8 @@
             :key="tab.id"
             @click="activeTab = tab.id"
             :class="[
-              activeTab === tab.id 
-                ? 'border-orange-500 text-orange-600' 
+              activeTab === tab.id
+                ? 'border-orange-500 text-orange-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
               'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm mr-8'
             ]"
@@ -197,8 +197,214 @@
         </div>
       </div>
       
+      <!-- Control Horario Tab -->
+      <div v-if="activeTab === 'control_horario'" class="bg-white shadow rounded-lg p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-lg font-medium text-gray-900">Control Horario</h2>
+        </div>
+        
+        <!-- Calendar View -->
+        <div class="mb-8">
+          <h3 class="text-sm font-medium text-gray-700 mb-3">Calendari</h3>
+          <div class="bg-white border border-gray-200 rounded-lg shadow">
+            <div class="p-4 flex justify-between items-center border-b">
+              <button @click="previousMonth" class="p-1 hover:bg-gray-100 rounded-full">
+                <svg class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <h2 class="text-lg font-medium text-gray-900">{{ currentMonthName }} {{ currentYear }}</h2>
+              <button @click="nextMonth" class="p-1 hover:bg-gray-100 rounded-full">
+                <svg class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            <div class="grid grid-cols-7 gap-px bg-gray-200">
+              <div v-for="day in daysOfWeek" :key="day" class="bg-gray-50 p-2 text-center text-sm font-medium text-gray-500">
+                {{ day }}
+              </div>
+              <template v-for="(day, index) in calendarDays" :key="index">
+                <div 
+                  class="bg-white p-2 min-h-[80px] relative"
+                  :class="{
+                    'bg-gray-50': !day.isCurrentMonth,
+                    'border-orange-500 border-2': day.isToday
+                  }"
+                >
+                  <span class="text-sm" :class="day.isCurrentMonth ? 'text-gray-900' : 'text-gray-400'">
+                    {{ day.date.getDate() }}
+                  </span>
+                  <!-- Indicator for days with entries -->
+                  <div 
+                    v-if="day.hasEntries" 
+                    class="absolute top-2 right-2 h-2 w-2 bg-orange-500 rounded-full"
+                    :title="`${day.entriesCount} registres`"
+                  ></div>
+                  <!-- Display entries count if any -->
+                  <div v-if="day.hasEntries" class="mt-1">
+                    <span @click="viewDayEntries(day.date)" class="text-xs bg-orange-100 text-orange-800 px-1 py-0.5 rounded cursor-pointer hover:bg-orange-200">
+                      {{ day.entriesCount }} registres
+                    </span>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time Entry Form -->
+        <div class="mb-8">
+          <h3 class="text-sm font-medium text-gray-700 mb-3">Registrar Control Horari</h3>
+          <div class="bg-white border border-gray-200 rounded-lg shadow p-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                <input 
+                  type="date" 
+                  v-model="timeEntry.date" 
+                  class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+                <select
+                  v-model="timeEntry.name"
+                  class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                >
+                  <option value="Javier">Javier</option>
+                  <option value="Joan">Joan</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Hora d'entrada</label>
+                <input 
+                  type="time" 
+                  v-model="timeEntry.entryTime" 
+                  class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Hora de sortida</label>
+                <input 
+                  type="time" 
+                  v-model="timeEntry.exitTime" 
+                  class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                />
+              </div>
+              <div class="md:col-span-2 lg:col-span-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Comentari (opcional)</label>
+                <input 
+                  type="text" 
+                  v-model="timeEntry.comment" 
+                  placeholder="Comentari opcional" 
+                  class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                />
+              </div>
+            </div>
+            <div class="mt-4 flex justify-end">
+              <button 
+                @click="submitTimeEntry"
+                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                :disabled="!isFormValid || submittingEntry"
+              >
+                <span v-if="submittingEntry" class="flex items-center">
+                  <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Guardant...
+                </span>
+                <span v-else>Guardar Registre</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time Entries Table -->
+        <div>
+          <h3 class="text-sm font-medium text-gray-700 mb-3">Registres</h3>
+          
+          <!-- Date selector -->
+          <div class="flex items-center mb-4 space-x-2">
+            <input 
+              type="date" 
+              v-model="selectedDateFilter"
+              class="border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+            />
+            <button 
+              @click="loadTimeEntriesForDate"
+              class="px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+            >
+              Filtrar
+            </button>
+            <button 
+              @click="clearDateFilter"
+              class="px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+            >
+              Mostrar Tots
+            </button>
+          </div>
+          
+          <!-- Loading state -->
+          <div v-if="loadingEntries" class="flex justify-center items-center py-20">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-orange-500 border-solid"></div>
+            <span class="ml-3 text-sm font-medium text-gray-700">Carregant registres...</span>
+          </div>
+          
+          <!-- Entries table -->
+          <div v-else-if="timeEntries.length > 0" class="bg-white border border-gray-200 rounded-lg shadow overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entrada</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sortida</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Hores</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comentari</th>
+                  <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Accions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="entry in timeEntries" :key="entry.id">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatDate(entry.date) }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ entry.name }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ entry.entry_time }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ entry.exit_time || '-' }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ calculateHours(entry.entry_time, entry.exit_time) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ entry.comment || '-' }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                    <button 
+                      @click="editTimeEntry(entry)"
+                      class="text-blue-600 hover:text-blue-900"
+                    >
+                      Editar
+                    </button>
+                    <button 
+                      @click="deleteTimeEntry(entry.id)"
+                      class="text-red-600 hover:text-red-900"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="py-10 text-center bg-white border border-gray-200 rounded-lg">
+            <svg class="mx-auto h-12 w-12 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="mt-2 text-sm text-gray-500">No hi ha registres per mostrar</p>
+          </div>
+        </div>
+      </div>
+      
       <!-- Other Tabs Content -->
-      <div v-else class="bg-white shadow rounded-lg p-6">
+      <div v-else-if="activeTab !== 'images' && activeTab !== 'control_horario'" class="bg-white shadow rounded-lg p-6">
         <p>Contingut en desenvolupament per a la pestanya {{ activeTab }}</p>
       </div>
     </div>
@@ -277,18 +483,180 @@
         </div>
       </div>
     </div>
+
+    <!-- Edit Entry Dialog -->
+    <div v-if="showEditDialog" class="fixed inset-0 z-10 overflow-y-auto">
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 transition-opacity" @click="showEditDialog = false">
+          <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+        </div>
+        <div class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full">
+          <div class="px-6 py-4">
+            <h3 class="text-lg font-medium text-gray-900">Editar Registre</h3>
+            <div class="mt-4 space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                <input 
+                  type="date" 
+                  v-model="editingEntry.date" 
+                  class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+                <select
+                  v-model="editingEntry.name"
+                  class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                >
+                  <option value="Javier">Javier</option>
+                  <option value="Joan">Joan</option>
+                </select>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Hora d'entrada</label>
+                  <input 
+                    type="time" 
+                    v-model="editingEntry.entry_time" 
+                    class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Hora de sortida</label>
+                  <input 
+                    type="time" 
+                    v-model="editingEntry.exit_time" 
+                    class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Comentari</label>
+                <input 
+                  type="text" 
+                  v-model="editingEntry.comment" 
+                  class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                />
+              </div>
+            </div>
+          </div>
+          <div class="bg-gray-50 px-6 py-3 flex justify-end">
+            <button 
+              type="button" 
+              class="mr-3 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              @click="showEditDialog = false"
+            >
+              Cancel·lar
+            </button>
+            <button 
+              type="button" 
+              class="px-4 py-2 text-sm font-medium text-white bg-orange-600 border border-transparent rounded-md hover:bg-orange-700"
+              @click="saveTimeEntry"
+              :disabled="submittingEdit"
+            >
+              <span v-if="submittingEdit" class="flex items-center">
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Desant...
+              </span>
+              <span v-else>Desar Canvis</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Day Entries Dialog -->
+    <div v-if="showDayEntriesDialog" class="fixed inset-0 z-10 overflow-y-auto">
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 transition-opacity" @click="showDayEntriesDialog = false">
+          <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+        </div>
+        <div class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-4xl sm:w-full">
+          <div class="px-6 py-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-medium text-gray-900">Registres del {{ formatDate(selectedDay) }}</h3>
+              <button @click="showDayEntriesDialog = false" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div class="mt-4">
+              <!-- Loading state -->
+              <div v-if="loadingDayEntries" class="flex justify-center items-center py-20">
+                <div class="animate-spin rounded-full h-8 w-8 border-t-4 border-orange-500 border-solid"></div>
+                <span class="ml-3 text-sm font-medium text-gray-700">Carregant registres...</span>
+              </div>
+              
+              <!-- Day entries table -->
+              <div v-else-if="dayEntries.length > 0" class="bg-white border border-gray-200 rounded-lg shadow overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entrada</th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sortida</th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Hores</th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comentari</th>
+                      <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Accions</th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+                    <tr v-for="entry in dayEntries" :key="entry.id">
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ entry.name }}</td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ entry.entry_time }}</td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ entry.exit_time || '-' }}</td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ calculateHours(entry.entry_time, entry.exit_time) }}
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ entry.comment || '-' }}</td>
+                      <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                        <button 
+                          @click="editTimeEntry(entry)"
+                          class="text-blue-600 hover:text-blue-900"
+                        >
+                          Editar
+                        </button>
+                        <button 
+                          @click="deleteTimeEntry(entry.id, true)"
+                          class="text-red-600 hover:text-red-900"
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else class="py-10 text-center bg-white border border-gray-200 rounded-lg">
+                <svg class="mx-auto h-12 w-12 text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="mt-2 text-sm text-gray-500">No hi ha registres per aquest dia</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import { ref, onMounted, computed } from 'vue';
 import { supabase } from '@/supabase';
+import { useRouter } from 'vue-router';
 
 export default {
   setup() {
+    const router = useRouter();
     const activeTab = ref('images');
     const tabs = ref([
       { id: 'images', name: 'Imatges' },
+      { id: 'control_horario', name: 'Control Horari' },
     //   { id: 'posts', name: 'Articles' },
     //   { id: 'settings', name: 'Configuració' }
     ]);
@@ -561,7 +929,8 @@ export default {
     
     const logout = async () => {
       await supabase.auth.signOut();
-      window.location.href = '/login';
+      // Use router navigation instead of direct URL change
+      router.push('/login');
     };
     
     const goBack = () => {
@@ -579,8 +948,401 @@ export default {
       fetchFolderContents(parentFolder);
     };
     
+    // Time tracking variables
+    const currentDate = ref(new Date());
+    const selectedDate = ref(null);
+    const calendarDays = ref([]);
+    const timeEntries = ref([]);
+    const loadingEntries = ref(false);
+    const submittingEntry = ref(false);
+    const selectedDateFilter = ref(formatDateForInput(new Date()));
+
+    const timeEntry = ref({
+      date: formatDateForInput(new Date()),
+      name: '',
+      entryTime: formatTimeForInput(new Date()),
+      exitTime: '',
+      comment: ''
+    });
+
+    // Edit dialog
+    const showEditDialog = ref(false);
+    const editingEntry = ref(null);
+    const submittingEdit = ref(false);
+
+    // Day entries dialog
+    const showDayEntriesDialog = ref(false);
+    const selectedDay = ref(null);
+    const dayEntries = ref([]);
+    const loadingDayEntries = ref(false);
+
+    // Calendar functions
+    const daysOfWeek = ['Dl', 'Dt', 'Dc', 'Dj', 'Dv', 'Ds', 'Dg'];
+    
+    const currentMonthName = computed(() => {
+      const months = ['Gener', 'Febrer', 'Març', 'Abril', 'Maig', 'Juny', 
+                      'Juliol', 'Agost', 'Setembre', 'Octubre', 'Novembre', 'Desembre'];
+      return months[currentDate.value.getMonth()];
+    });
+    
+    const currentYear = computed(() => {
+      return currentDate.value.getFullYear();
+    });
+    
+    const isFormValid = computed(() => {
+      return timeEntry.value.date && 
+             timeEntry.value.name && 
+             timeEntry.value.entryTime;
+    });
+    
+    const generateCalendar = async () => {
+      const year = currentDate.value.getFullYear();
+      const month = currentDate.value.getMonth();
+      
+      // Get first day of month
+      const firstDay = new Date(year, month, 1);
+      // Get days in month
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      
+      // Get day of week of first day (0 = Sunday, 1 = Monday, etc.)
+      // Convert to Monday-first format (0 = Monday, 6 = Sunday)
+      let dayOfWeek = firstDay.getDay();
+      dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      
+      const days = [];
+      
+      // Add days from previous month
+      const prevMonth = new Date(year, month, 0);
+      const prevMonthDays = prevMonth.getDate();
+      
+      for (let i = dayOfWeek - 1; i >= 0; i--) {
+        days.push({
+          date: new Date(year, month - 1, prevMonthDays - i),
+          isCurrentMonth: false,
+          hasEntries: false,
+          entriesCount: 0
+        });
+      }
+      
+      // Add days from current month
+      const today = new Date();
+      for (let i = 1; i <= daysInMonth; i++) {
+        days.push({
+          date: new Date(year, month, i),
+          isCurrentMonth: true,
+          isToday: today.getDate() === i && 
+                   today.getMonth() === month && 
+                   today.getFullYear() === year,
+          hasEntries: false,
+          entriesCount: 0
+        });
+      }
+      
+      // Add days from next month
+      const totalDaysToShow = 42; // 6 rows of 7 days
+      const daysFromNextMonth = totalDaysToShow - days.length;
+      
+      for (let i = 1; i <= daysFromNextMonth; i++) {
+        days.push({
+          date: new Date(year, month + 1, i),
+          isCurrentMonth: false,
+          hasEntries: false,
+          entriesCount: 0
+        });
+      }
+      
+      // Fetch entries data for the days in the calendar
+      await fetchEntriesForCalendar(days, year, month);
+      
+      calendarDays.value = days;
+    };
+    
+    // Fetch entries for the calendar to show indicators
+    const fetchEntriesForCalendar = async (days, year, month) => {
+      try {
+        // Get start and end date for the calendar view (including days from adjacent months)
+        const startDate = formatDateForDatabase(days[0].date);
+        const endDate = formatDateForDatabase(days[days.length - 1].date);
+        
+        // Fetch entries for the entire calendar range
+        const { data, error } = await supabase
+          .from('time_entries')
+          .select('*')
+          .gte('date', startDate)
+          .lte('date', endDate);
+          
+        if (error) throw error;
+        
+        // Group entries by date
+        const entriesByDate = {};
+        data.forEach(entry => {
+          if (!entriesByDate[entry.date]) {
+            entriesByDate[entry.date] = [];
+          }
+          entriesByDate[entry.date].push(entry);
+        });
+        
+        // Update calendar days with entry information
+        days.forEach(day => {
+          const dateStr = formatDateForDatabase(day.date);
+          const entries = entriesByDate[dateStr] || [];
+          day.hasEntries = entries.length > 0;
+          day.entriesCount = entries.length;
+        });
+        
+      } catch (err) {
+        console.error('Error fetching calendar entries:', err);
+      }
+    };
+    
+    const previousMonth = () => {
+      currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1);
+      generateCalendar();
+    };
+    
+    const nextMonth = () => {
+      currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1);
+      generateCalendar();
+    };
+    
+    // Time entry functions
+    const submitTimeEntry = async () => {
+      if (!isFormValid.value) return;
+      
+      submittingEntry.value = true;
+      
+      try {
+        // Format the date for database storage
+        const formattedDate = timeEntry.value.date;
+        
+        const { data, error } = await supabase
+          .from('time_entries')
+          .insert([
+            {
+              date: formattedDate,
+              name: timeEntry.value.name,
+              entry_time: timeEntry.value.entryTime,
+              exit_time: timeEntry.value.exitTime || null,
+              comment: timeEntry.value.comment || null
+            }
+          ]);
+          
+        if (error) throw error;
+        
+        // Reset form fields except name (for convenience)
+        const userName = timeEntry.value.name;
+        timeEntry.value = {
+          date: formatDateForInput(new Date()),
+          name: userName,
+          entryTime: formatTimeForInput(new Date()),
+          exitTime: '',
+          comment: ''
+        };
+        
+        // Refresh entries list and calendar
+        await loadTimeEntries();
+        await generateCalendar();
+        
+      } catch (err) {
+        console.error('Error adding time entry:', err);
+        alert('Error al guardar el registre. Si us plau, intenta-ho de nou.');
+      } finally {
+        submittingEntry.value = false;
+      }
+    };
+    
+    const loadTimeEntries = async (date = null) => {
+      loadingEntries.value = true;
+      
+      try {
+        let query = supabase
+          .from('time_entries')
+          .select('*')
+          .order('date', { ascending: false });
+          
+        if (date) {
+          query = query.eq('date', date);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        
+        timeEntries.value = data || [];
+        
+      } catch (err) {
+        console.error('Error loading time entries:', err);
+      } finally {
+        loadingEntries.value = false;
+      }
+    };
+    
+    const loadTimeEntriesForDate = async () => {
+      if (selectedDateFilter.value) {
+        await loadTimeEntries(selectedDateFilter.value);
+      }
+    };
+    
+    const clearDateFilter = async () => {
+      selectedDateFilter.value = '';
+      await loadTimeEntries();
+    };
+    
+    const selectDate = (date) => {
+      selectedDateFilter.value = formatDateForInput(date);
+      loadTimeEntriesForDate();
+    };
+    
+    const deleteTimeEntry = async (id, isFromDayDialog = false) => {
+      if (!confirm('Estàs segur que vols eliminar aquest registre?')) {
+        return;
+      }
+      
+      try {
+        const { error } = await supabase
+          .from('time_entries')
+          .delete()
+          .eq('id', id);
+          
+        if (error) throw error;
+        
+        // Refresh entries list and calendar
+        await loadTimeEntries(selectedDateFilter.value || null);
+        if (isFromDayDialog && selectedDay.value) {
+          await loadDayEntries(selectedDay.value);
+        }
+        await generateCalendar();
+        
+      } catch (err) {
+        console.error('Error deleting time entry:', err);
+        alert('Error al eliminar el registre. Si us plau, intenta-ho de nou.');
+      }
+    };
+    
+    // Edit time entry
+    const editTimeEntry = (entry) => {
+      editingEntry.value = { ...entry };
+      showEditDialog.value = true;
+    };
+    
+    const saveTimeEntry = async () => {
+      if (!editingEntry.value) return;
+      
+      submittingEdit.value = true;
+      
+      try {
+        const { error } = await supabase
+          .from('time_entries')
+          .update({
+            date: editingEntry.value.date,
+            name: editingEntry.value.name,
+            entry_time: editingEntry.value.entry_time,
+            exit_time: editingEntry.value.exit_time,
+            comment: editingEntry.value.comment
+          })
+          .eq('id', editingEntry.value.id);
+          
+        if (error) throw error;
+        
+        showEditDialog.value = false;
+        
+        // Refresh entries list and calendar
+        await loadTimeEntries(selectedDateFilter.value || null);
+        if (showDayEntriesDialog.value && selectedDay.value) {
+          await loadDayEntries(selectedDay.value);
+        }
+        await generateCalendar();
+        
+      } catch (err) {
+        console.error('Error updating time entry:', err);
+        alert('Error al desar els canvis. Si us plau, intenta-ho de nou.');
+      } finally {
+        submittingEdit.value = false;
+      }
+    };
+    
+    // View entries for a specific day
+    const viewDayEntries = (date) => {
+      selectedDay.value = date;
+      showDayEntriesDialog.value = true;
+      loadDayEntries(date);
+    };
+    
+    const loadDayEntries = async (date) => {
+      loadingDayEntries.value = true;
+      
+      try {
+        const formattedDate = formatDateForDatabase(date);
+        
+        const { data, error } = await supabase
+          .from('time_entries')
+          .select('*')
+          .eq('date', formattedDate)
+          .order('entry_time', { ascending: true });
+          
+        if (error) throw error;
+        
+        dayEntries.value = data || [];
+        
+      } catch (err) {
+        console.error('Error loading day entries:', err);
+      } finally {
+        loadingDayEntries.value = false;
+      }
+    };
+    
+    // Helper functions
+    function formatDateForInput(date) {
+      // Ajusta la data a l'hora local per evitar desfasaments
+      const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      return localDate.toISOString().split('T')[0];
+    }
+    
+    function formatTimeForInput(date) {
+      return date.toTimeString().slice(0, 5);
+    }
+    
+    function formatDateForDatabase(date) {
+      // Ajusta la data a l'hora local per evitar desfasaments
+      const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      return localDate.toISOString().split('T')[0];
+    }
+    
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('ca-ES');
+    }
+
+    // Calculate hours between entry and exit time
+    const calculateHours = (entryTime, exitTime) => {
+      if (!entryTime || !exitTime) return '-';
+      
+      // Parse times
+      const [entryHour, entryMinute] = entryTime.split(':').map(Number);
+      const [exitHour, exitMinute] = exitTime.split(':').map(Number);
+      
+      // Calculate total minutes
+      let entryMinutes = entryHour * 60 + entryMinute;
+      let exitMinutes = exitHour * 60 + exitMinute;
+      
+      // Handle if exit time is on the next day
+      if (exitMinutes < entryMinutes) {
+        exitMinutes += 24 * 60; // Add 24 hours
+      }
+      
+      const diffMinutes = exitMinutes - entryMinutes;
+      const hours = Math.floor(diffMinutes / 60);
+      const minutes = diffMinutes % 60;
+      
+      return `${hours}h ${minutes}m`;
+    };
+
     onMounted(() => {
       fetchFolderContents();
+      // Initialize time tracking
+      generateCalendar();
+      loadTimeEntries();
     });
     
     return {
@@ -607,7 +1369,39 @@ export default {
       showDeleteDialog,
       itemToDelete,
       confirmDelete,
-      goBack
+      goBack,
+      // Time tracking
+      currentDate,
+      currentMonthName,
+      currentYear,
+      daysOfWeek,
+      calendarDays,
+      timeEntry,
+      timeEntries,
+      loadingEntries,
+      submittingEntry,
+      selectedDateFilter,
+      isFormValid,
+      previousMonth,
+      nextMonth,
+      submitTimeEntry,
+      loadTimeEntries,
+      loadTimeEntriesForDate,
+      clearDateFilter,
+      selectDate,
+      deleteTimeEntry,
+      formatDate,
+      calculateHours,
+      editTimeEntry,
+      saveTimeEntry,
+      showEditDialog,
+      editingEntry,
+      submittingEdit,
+      dayEntries,
+      selectedDay,
+      loadingDayEntries,
+      showDayEntriesDialog,
+      viewDayEntries
     };
   },
 };

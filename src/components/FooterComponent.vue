@@ -21,20 +21,20 @@
           <ul class="space-y-2">
             <li><router-link to="/" class="text-gray-400 hover:text-orange-500 transition-colors">Sobre nosaltres</router-link></li>
             <li><router-link to="/album" class="text-gray-400 hover:text-orange-500 transition-colors">Galeria de treballs</router-link></li>
-            <li><a href="#" class="text-gray-400 hover:text-orange-500 transition-colors">Política de privacitat</a></li>
+            <li><router-link to="/privacitat" class="text-gray-400 hover:text-orange-500 transition-colors">Política de privacitat</router-link></li>
           </ul>
         </div>
         
         <div class="space-y-4">
           <h3 class="font-bold text-lg mb-2">Xarxes socials</h3>
           <div class="flex space-x-4">
-            <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition-colors">
+            <a href="https://es-es.facebook.com/fusteriajoanribalta/" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition-colors">
               <i class="fa-brands fa-facebook-f"></i>
             </a>
-            <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition-colors">
+            <a href="https://www.instagram.com/fusteriajoanribalta/" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition-colors">
               <i class="fa-brands fa-instagram"></i>
             </a>
-            <a href="#" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition-colors">
+            <a href="https://wa.me/666590833" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-orange-600 transition-colors">
               <i class="fa-brands fa-whatsapp"></i>
             </a>
           </div>
