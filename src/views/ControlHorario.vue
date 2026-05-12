@@ -65,12 +65,8 @@
                 id="name"
                 v-model="form.name"
                 required
-                :disabled="!isSuperuser"
                 placeholder="El teu nom"
-                :class="[
-                  'w-full px-3 py-3 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500',
-                  isSuperuser ? 'bg-white' : 'bg-gray-100 text-gray-600 cursor-not-allowed'
-                ]"
+                class="w-full px-3 py-3 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
               />
             </div>
 
@@ -78,25 +74,33 @@
               <label for="entry_time" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Hora d'Entrada
               </label>
-              <input
-                type="time"
+              <select
                 id="entry_time"
                 v-model="form.entry_time"
                 required
                 class="w-full px-3 py-3 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-              />
+              >
+                <option value="">-- Selecciona hora --</option>
+                <option v-for="time in timeOptions" :key="time" :value="time">
+                  {{ time }}
+                </option>
+              </select>
             </div>
 
             <div>
               <label for="exit_time" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Hora de Sortida
               </label>
-              <input
-                type="time"
+              <select
                 id="exit_time"
                 v-model="form.exit_time"
                 class="w-full px-3 py-3 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-              />
+              >
+                <option value="">-- Selecciona hora --</option>
+                <option v-for="time in timeOptions" :key="time" :value="time">
+                  {{ time }}
+                </option>
+              </select>
             </div>
 
             <div>
@@ -171,15 +175,28 @@
             <span>Historial</span>
             <span v-if="!isSuperuser" class="text-xs sm:text-base font-normal text-gray-500 ml-2">(Teus registres)</span>
           </h2>
-          <select 
-            v-model="filterPeriod" 
-            @change="carregarRegistres"
-            class="w-full sm:w-auto px-3 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-          >
-            <option value="week">Aquesta setmana</option>
-            <option value="month">Aquest mes</option>
-            <option value="all">Tot l'historial</option>
-          </select>
+          <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <select 
+              v-if="isSuperuser"
+              v-model="filterProject" 
+              class="w-full sm:w-auto px-3 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            >
+              <option value="all">Tots els projectes</option>
+              <option value="none">Sense projecte</option>
+              <option v-for="project in proyectos" :key="project.id" :value="project.id">
+                {{ project.nombre }}
+              </option>
+            </select>
+            <select 
+              v-model="filterPeriod" 
+              @change="carregarRegistres"
+              class="w-full sm:w-auto px-3 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            >
+              <option value="week">Aquesta setmana</option>
+              <option value="month">Aquest mes</option>
+              <option value="all">Tot l'historial</option>
+            </select>
+          </div>
         </div>
 
         <!-- Loading State -->
@@ -190,6 +207,113 @@
 
         <!-- Records - Mobile Cards -->
         <div v-else-if="registres.length > 0">
+          <!-- Superuser: Grouped by User -->
+          <div v-if="isSuperuser" class="space-y-6">
+            <div v-for="(userEntries, userNameKey) in registresPorUsuario" :key="userNameKey" class="border border-gray-200 rounded-xl overflow-hidden">
+              <!-- User Header -->
+              <div class="bg-orange-50 px-4 py-3 border-b border-orange-200">
+                <div class="flex justify-between items-center">
+                  <h3 class="text-lg font-bold text-orange-900">{{ userNameKey }}</h3>
+                  <span class="bg-orange-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                    {{ calculateUserTotalHours(userEntries) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Desktop Table -->
+              <div class="hidden lg:block overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Projecte</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entrada</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sortida</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hores</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comentari</th>
+                      <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Accions</th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+                    <tr v-for="registre in userEntries" :key="registre.id" class="hover:bg-gray-50">
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatDate(registre.date) }}</td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        <span v-if="registre.proyectos" class="inline-flex items-center px-2 py-1 rounded-md bg-orange-50 text-orange-700 text-xs font-medium">
+                          {{ registre.proyectos.nombre }}
+                        </span>
+                        <span v-else class="text-gray-400">-</span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ registre.entry_time }}</td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ registre.exit_time || '-' }}</td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <span class="font-semibold text-orange-600">{{ calculateHours(registre.entry_time, registre.exit_time) }}</span>
+                      </td>
+                      <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{{ registre.comment || '-' }}</td>
+                      <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button @click="editEntry(registre)" class="text-orange-600 hover:text-orange-900 mr-3">Editar</button>
+                        <button @click="deleteEntry(registre.id)" class="text-red-600 hover:text-red-900">Eliminar</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Mobile Cards -->
+              <div class="lg:hidden space-y-3 p-3">
+                <div v-for="registre in userEntries" :key="registre.id" class="bg-white border border-gray-200 rounded-xl p-4 shadow hover:shadow-md transition">
+                  <div class="flex justify-between items-start mb-3">
+                    <div class="flex-1">
+                      <div class="text-sm font-semibold text-gray-900 mb-1">
+                        {{ formatDate(registre.date) }}
+                      </div>
+                    </div>
+                    <div class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-bold">
+                      {{ calculateHours(registre.entry_time, registre.exit_time) }}
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-3 mb-3 bg-gray-50 rounded-lg p-3">
+                    <div>
+                      <div class="text-xs text-gray-500 mb-1">Entrada</div>
+                      <div class="text-sm font-semibold text-gray-900">{{ registre.entry_time }}</div>
+                    </div>
+                    <div>
+                      <div class="text-xs text-gray-500 mb-1">Sortida</div>
+                      <div class="text-sm font-semibold text-gray-900">{{ registre.exit_time || '-' }}</div>
+                    </div>
+                  </div>
+
+                  <div v-if="registre.proyectos" class="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-3">
+                    <div class="text-xs text-orange-600 mb-1">Projecte</div>
+                    <div class="text-sm font-semibold text-orange-700">{{ registre.proyectos.nombre }}</div>
+                  </div>
+
+                  <div v-if="registre.comment" class="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3">
+                    <div class="text-xs text-gray-500 mb-1">Comentari</div>
+                    <div class="text-sm text-gray-700">{{ registre.comment }}</div>
+                  </div>
+
+                  <div class="flex gap-2 pt-2 border-t border-gray-200">
+                    <button
+                      @click="editEntry(registre)"
+                      class="flex-1 px-4 py-2 bg-orange-50 text-orange-700 rounded-lg text-sm font-medium hover:bg-orange-100 active:bg-orange-200 transition"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      @click="deleteEntry(registre.id)"
+                      class="flex-1 px-4 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 active:bg-red-200 transition"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Normal User: Single List -->
+          <div v-else>
           <!-- Desktop Table (hidden on mobile) -->
           <div class="hidden lg:block overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
@@ -290,6 +414,8 @@
             </div>
           </div>
 
+          </div>
+
           <!-- Total Hours -->
           <div class="mt-4 sm:mt-6 flex justify-center sm:justify-end">
             <div class="bg-orange-600 text-white px-6 py-4 rounded-xl shadow-lg w-full sm:w-auto">
@@ -330,6 +456,7 @@ export default {
     const registres = ref([]);
     const proyectos = ref([]);
     const filterPeriod = ref('month');
+    const filterProject = ref('all');
     const editingEntry = ref(null);
     const userName = ref(localStorage.getItem('userFullName') || localStorage.getItem('userName') || 'Usuari');
     const userRole = ref(localStorage.getItem('userRole') || 'usuario');
@@ -337,12 +464,22 @@ export default {
     
     const form = ref({
       date: new Date().toISOString().split('T')[0],
-      name: isSuperuser.value ? '' : userName.value,
+      name: userName.value,
       entry_time: '',
       exit_time: '',
       comment: '',
       project_id: null
     });
+
+    // Generar opciones de tiempo en cuartos de hora (15 minutos)
+    const timeOptions = ref([]);
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute of [0, 15, 30, 45]) {
+        const h = hour.toString().padStart(2, '0');
+        const m = minute.toString().padStart(2, '0');
+        timeOptions.value.push(`${h}:${m}`);
+      }
+    }
 
     const formatDate = (dateStr) => {
       return new Date(dateStr).toLocaleDateString('ca-ES', { 
@@ -364,10 +501,62 @@ export default {
       
       if (diffMinutes < 0) return '-';
       
-      const hours = Math.floor(diffMinutes / 60);
-      const minutes = diffMinutes % 60;
+      // Convertir a horas decimales y redondear a cuartos (0.25h)
+      const decimalHours = diffMinutes / 60;
+      const roundedHours = Math.round(decimalHours * 4) / 4;
       
-      return `${hours}h ${minutes}m`;
+      return `${roundedHours.toFixed(2)}h`;
+    };
+
+    const registresPorUsuario = computed(() => {
+      if (!isSuperuser.value) return {};
+      
+      // Filtrar por proyecto primero
+      let filteredRegistres = registres.value;
+      if (filterProject.value !== 'all') {
+        if (filterProject.value === 'none') {
+          filteredRegistres = registres.value.filter(r => !r.project_id);
+        } else {
+          filteredRegistres = registres.value.filter(r => r.project_id === filterProject.value);
+        }
+      }
+      
+      // Agrupar por usuario
+      const grouped = {};
+      filteredRegistres.forEach(registre => {
+        const userName = registre.name || 'Sense nom';
+        if (!grouped[userName]) {
+          grouped[userName] = [];
+        }
+        grouped[userName].push(registre);
+      });
+      
+      return grouped;
+    });
+
+    const calculateUserTotalHours = (userEntries) => {
+      let totalMinutes = 0;
+      
+      userEntries.forEach(registre => {
+        if (registre.entry_time && registre.exit_time) {
+          const [entryH, entryM] = registre.entry_time.split(':').map(Number);
+          const [exitH, exitM] = registre.exit_time.split(':').map(Number);
+          
+          const entryMinutes = entryH * 60 + entryM;
+          const exitMinutes = exitH * 60 + exitM;
+          const diffMinutes = exitMinutes - entryMinutes;
+          
+          if (diffMinutes > 0) {
+            totalMinutes += diffMinutes;
+          }
+        }
+      });
+      
+      // Convertir a horas decimales y redondear a cuartos (0.25h)
+      const decimalHours = totalMinutes / 60;
+      const roundedHours = Math.round(decimalHours * 4) / 4;
+      
+      return `${roundedHours.toFixed(2)}h`;
     };
 
     const totalHours = computed(() => {
@@ -388,10 +577,11 @@ export default {
         }
       });
       
-      const hours = Math.floor(totalMinutes / 60);
-      const minutes = totalMinutes % 60;
+      // Convertir a horas decimales y redondear a cuartos (0.25h)
+      const decimalHours = totalMinutes / 60;
+      const roundedHours = Math.round(decimalHours * 4) / 4;
       
-      return `${hours}h ${minutes}m`;
+      return `${roundedHours.toFixed(2)}h`;
     });
 
     const showMessage = (msg, type = 'success') => {
@@ -441,7 +631,7 @@ export default {
         // Reset form
         form.value = {
           date: new Date().toISOString().split('T')[0],
-          name: isSuperuser.value ? '' : userName.value,
+          name: userName.value,
           entry_time: '',
           exit_time: '',
           comment: '',
@@ -475,7 +665,7 @@ export default {
       editingEntry.value = null;
       form.value = {
         date: new Date().toISOString().split('T')[0],
-        name: isSuperuser.value ? '' : userName.value,
+        name: userName.value,
         entry_time: '',
         exit_time: '',
         comment: '',
@@ -583,10 +773,14 @@ export default {
       registres,
       proyectos,
       filterPeriod,
+      filterProject,
       editingEntry,
       totalHours,
       userName,
       isSuperuser,
+      registresPorUsuario,
+      calculateUserTotalHours,
+      timeOptions,
       saveEntry,
       editEntry,
       cancelEdit,
