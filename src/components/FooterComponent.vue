@@ -42,7 +42,7 @@
       </div>
       
       <div class="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400 text-sm">
-        <p>© 2023 Fusteria Joan Ribalta. Tots els drets reservats</p>
+        <p>© 2026 Fusteria Joan Ribalta. Tots els drets reservats</p>
       </div>
     </div>
   </footer>
