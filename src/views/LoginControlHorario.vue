@@ -7,8 +7,8 @@
           <div class="flex justify-center mb-4">
             <img class="h-16 w-auto rounded-lg shadow-lg" src="@/assets/logo.jpg" alt="Logo">
           </div>
-          <h1 class="text-3xl font-bold text-white">Inici de Sessió</h1>
-          <p class="text-orange-100 mt-2">Accés al sistema</p>
+          <h1 class="text-3xl font-bold text-white">Control Horari</h1>
+          <p class="text-orange-100 mt-2">Accés al sistema de fitxatge</p>
         </div>
 
         <!-- Formulario -->
@@ -80,7 +80,26 @@
               </span>
             </button>
           </form>
+
+          <div class="mt-6 text-center">
+            <router-link 
+              to="/" 
+              class="text-sm text-orange-600 hover:text-orange-800 font-medium inline-flex items-center"
+            >
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+              </svg>
+              Tornar a l'inici
+            </router-link>
+          </div>
         </div>
+      </div>
+
+      <!-- Info adicional -->
+      <div class="mt-8 text-center">
+        <p class="text-sm text-gray-600">
+          Aquest accés és només per a empleats
+        </p>
       </div>
     </div>
   </div>
@@ -92,6 +111,7 @@ import { supabase } from '@/supabase';
 import { useRouter } from 'vue-router';
 
 export default {
+  name: 'LoginControlHorario',
   setup() {
     const username = ref('');
     const password = ref('');
@@ -104,7 +124,7 @@ export default {
       error.value = '';
       
       try {
-        // Primero buscar el email del usuario por su username
+        // Primero buscar el usuario por su username
         const { data: profile, error: profileError } = await supabase
           .from('user_profiles')
           .select('id, full_name, role, username')
@@ -117,43 +137,26 @@ export default {
           return;
         }
 
-        // Obtener el email del usuario desde auth.users
-        const { data: users, error: usersError } = await supabase.rpc('get_user_email_by_id', { user_id: profile.id });
+        // Obtener el email del usuario desde la función RPC
+        const { data: usersList } = await supabase.rpc('get_all_users_with_profiles');
+        const userWithEmail = usersList?.find(u => u.id === profile.id);
         
-        if (usersError || !users) {
-          // Fallback: intentar obtener la sesión actual o buscar por RPC
-          const { data: usersList } = await supabase.rpc('get_all_users_with_profiles');
-          const userWithEmail = usersList?.find(u => u.id === profile.id);
-          
-          if (!userWithEmail?.email) {
-            error.value = 'No es pot obtenir el correu de l\'usuari';
-            loading.value = false;
-            return;
-          }
-          
-          // Hacer login con el email encontrado
-          const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({
-            email: userWithEmail.email,
-            password: password.value,
-          });
-          
-          if (loginError) {
-            error.value = 'Contrasenya incorrecta';
-            loading.value = false;
-            return;
-          }
-        } else {
-          // Hacer login con el email obtenido
-          const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({
-            email: users,
-            password: password.value,
-          });
-          
-          if (loginError) {
-            error.value = 'Contrasenya incorrecta';
-            loading.value = false;
-            return;
-          }
+        if (!userWithEmail?.email) {
+          error.value = 'No es pot obtenir el correu de l\'usuari';
+          loading.value = false;
+          return;
+        }
+
+        // Hacer login con el email encontrado
+        const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({
+          email: userWithEmail.email,
+          password: password.value,
+        });
+        
+        if (loginError) {
+          error.value = 'Contrasenya incorrecta';
+          loading.value = false;
+          return;
         }
 
         // Guardar información en localStorage
@@ -161,15 +164,8 @@ export default {
         localStorage.setItem('userRole', profile.role || 'usuario');
         localStorage.setItem('userName', profile.username || '');
 
-        error.value = '';
-        
-        // Redirigir según el rol
-        const userRole = profile?.role || 'usuario';
-        if (userRole === 'superusuario') {
-          router.push('/area-privada');
-        } else {
-          router.push('/control-horario');
-        }
+        // Redirigir a control horario
+        router.push('/control-horario');
       } catch (err) {
         error.value = 'Error al iniciar sessió';
         console.error(err);
