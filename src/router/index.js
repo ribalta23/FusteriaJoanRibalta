@@ -3,6 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import AlbumView from '../views/AlbumView.vue'
 import AreaPrivada from '../views/AreaPrivada.vue'
 import ControlHorario from '../views/ControlHorario.vue'
+import ControlUsuario from '../views/ControlUsuario.vue'
 import GestionImagenes from '../views/GestionImagenes.vue'
 import GestionUsuarios from '../views/GestionUsuarios.vue'
 import GestionProyectos from '../views/GestionProyectos.vue'
@@ -37,6 +38,11 @@ const router = createRouter({
       path: '/control-horario', 
       component: ControlHorario, 
       meta: { requiereAuth: true } 
+    },
+    { 
+      path: '/control-usuario', 
+      component: ControlUsuario, 
+      meta: { requiereAuth: true, requiresSuperuser: true } 
     },
     { 
       path: '/gestio-imatges', 

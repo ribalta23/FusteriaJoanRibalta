@@ -32,6 +32,72 @@
 
     <!-- Main Content -->
     <div class="px-4 py-6 max-w-7xl mx-auto">
+      <!-- Fichaje Rápido (Solo Usuarios) -->
+      <div v-if="!isSuperuser" class="bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 shadow-xl rounded-2xl p-6 mb-4">
+        <!-- Fichaje activo -->
+        <div v-if="activeFichaje">
+          <!-- Contador grande con botón -->
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-3">
+              <div class="text-5xl font-bold text-white">
+                {{ elapsedTimeFormatted }}
+              </div>
+              <!-- Punto rojo pulsante -->
+              <div class="relative">
+                <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                <div class="absolute inset-0 w-3 h-3 bg-red-500 rounded-full opacity-50 animate-ping"></div>
+              </div>
+            </div>
+
+            <!-- Botón circular de stop -->
+            <button
+              @click="stopFichaje"
+              class="w-20 h-20 bg-slate-600 hover:bg-slate-500 rounded-full flex items-center justify-center shadow-lg transition group"
+            >
+              <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Sin fichaje activo -->
+        <div v-else class="flex items-center justify-between mb-6">
+          <div>
+            <div class="text-white text-opacity-70 text-sm mb-1">
+              {{ formatDateShort(new Date().toISOString().split('T')[0]) }}
+            </div>
+            <div class="text-white text-3xl font-bold">{{ todayHours }}</div>
+          </div>
+
+          <!-- Botón circular de play -->
+          <button
+            @click="startFichaje"
+            class="w-20 h-20 bg-slate-600 hover:bg-slate-500 rounded-full flex items-center justify-center shadow-lg transition group"
+          >
+            <svg class="w-10 h-10 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div class="w-full bg-slate-600 rounded-full h-2 mb-4">
+          <div 
+            class="bg-blue-500 h-2 rounded-full transition-all duration-300" 
+            :style="{ width: progressPercentage + '%' }"
+          ></div>
+        </div>
+
+        <!-- Resumen semanal -->
+        <div class="flex justify-between items-center text-white">
+          <span class="text-sm text-white text-opacity-70">Aquesta setmana</span>
+          <span class="text-lg font-semibold">
+            {{ weeklyHours }} / <span class="text-white text-opacity-50">40h</span>
+          </span>
+        </div>
+      </div>
+
       <!-- Add Entry Form -->
       <div class="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
         <h2 class="text-lg sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center">
@@ -56,19 +122,24 @@
               />
             </div>
             
-            <div>
+            <!-- Campo Nom: hidden para usuarios, select para superusuarios -->
+            <div v-if="isSuperuser">
               <label for="name" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                Nom
+                Usuari
               </label>
-              <input
-                type="text"
+              <select
                 id="name"
                 v-model="form.name"
                 required
-                placeholder="El teu nom"
-                class="w-full px-3 py-3 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
-              />
+                class="w-full px-3 py-3 text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              >
+                <option value="">-- Selecciona usuari --</option>
+                <option v-for="user in usuarios" :key="user.id" :value="user.full_name">
+                  {{ user.full_name }}
+                </option>
+              </select>
             </div>
+            <input v-else type="hidden" v-model="form.name" />
 
             <div>
               <label for="entry_time" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
@@ -165,8 +236,8 @@
         </div>
       </div>
 
-      <!-- Records Section -->
-      <div class="bg-white shadow-md rounded-xl p-4 sm:p-6">
+      <!-- Records Section (Solo Superusuario) -->
+      <div v-if="isSuperuser" class="bg-white shadow-md rounded-xl p-4 sm:p-6">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 space-y-3 sm:space-y-0">
           <h2 class="text-lg sm:text-2xl font-bold text-gray-900 flex items-center">
             <svg class="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -441,7 +512,7 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { supabase } from '@/supabase';
 import { useRouter } from 'vue-router';
 
@@ -455,8 +526,16 @@ export default {
     const messageType = ref('');
     const registres = ref([]);
     const proyectos = ref([]);
+    const usuarios = ref([]);
     const filterPeriod = ref('month');
     const filterProject = ref('all');
+    
+    // Fichaje activo
+    const activeFichaje = ref(null);
+    const elapsedTime = ref('00:00:00');
+    const fichajesHoy = ref([]);
+    const fichajesSemanales = ref([]);
+    let timerInterval = null;
     const editingEntry = ref(null);
     const userName = ref(localStorage.getItem('userFullName') || localStorage.getItem('userName') || 'Usuari');
     const userRole = ref(localStorage.getItem('userRole') || 'usuario');
@@ -471,9 +550,9 @@ export default {
       project_id: null
     });
 
-    // Generar opciones de tiempo en cuartos de hora (15 minutos)
+    // Generar opciones de tiempo en cuartos de hora (15 minutos) - 7:00 a 21:00
     const timeOptions = ref([]);
-    for (let hour = 0; hour < 24; hour++) {
+    for (let hour = 7; hour <= 21; hour++) {
       for (let minute of [0, 15, 30, 45]) {
         const h = hour.toString().padStart(2, '0');
         const m = minute.toString().padStart(2, '0');
@@ -488,6 +567,125 @@ export default {
         year: 'numeric'
       });
     };
+
+    const formatDateShort = (dateStr) => {
+      return new Date(dateStr).toLocaleDateString('ca-ES', { 
+        day: 'numeric',
+        month: 'short'
+      });
+    };
+
+    // Formato de tiempo transcurrido: "0h 00m 00s"
+    const elapsedTimeFormatted = computed(() => {
+      if (!elapsedTime.value) return '0h 00m 00s';
+      const parts = elapsedTime.value.split(':');
+      const h = parseInt(parts[0]);
+      const m = parts[1];
+      const s = parts[2];
+      return `${h}h ${m}m ${s}s`;
+    });
+
+    // Calcular horas trabajadas hoy
+    const todayHours = computed(() => {
+      let totalSeconds = 0;
+      
+      // Sumar fichajes completados de hoy
+      fichajesHoy.value.forEach(fichaje => {
+        if (fichaje.entry_time && fichaje.exit_time) {
+          const [entryH, entryM, entryS = 0] = fichaje.entry_time.split(':').map(Number);
+          const [exitH, exitM, exitS = 0] = fichaje.exit_time.split(':').map(Number);
+          
+          const entrySeconds = entryH * 3600 + entryM * 60 + entryS;
+          const exitSeconds = exitH * 3600 + exitM * 60 + exitS;
+          const diffSeconds = exitSeconds - entrySeconds;
+          
+          if (diffSeconds > 0) {
+            totalSeconds += diffSeconds;
+          }
+        }
+      });
+
+      // Agregar tiempo del fichaje activo si existe
+      if (activeFichaje.value && elapsedTime.value) {
+        const parts = elapsedTime.value.split(':');
+        const h = parseInt(parts[0]);
+        const m = parseInt(parts[1]);
+        const s = parseInt(parts[2]);
+        totalSeconds += (h * 3600 + m * 60 + s);
+      }
+
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      return `${hours}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+    });
+
+    // Calcular horas trabajadas esta semana (SOLO FICHAJES)
+    const weeklyHours = computed(() => {
+      let totalMinutes = 0;
+      
+      // Sumar SOLO fichajes de la semana
+      fichajesSemanales.value.forEach(fichaje => {
+        if (fichaje.entry_time && fichaje.exit_time) {
+          const [entryH, entryM, entryS = 0] = fichaje.entry_time.split(':').map(Number);
+          const [exitH, exitM, exitS = 0] = fichaje.exit_time.split(':').map(Number);
+          
+          const entrySeconds = entryH * 3600 + entryM * 60 + entryS;
+          const exitSeconds = exitH * 3600 + exitM * 60 + exitS;
+          const diffSeconds = exitSeconds - entrySeconds;
+          
+          if (diffSeconds > 0) {
+            totalMinutes += diffSeconds / 60;
+          }
+        }
+      });
+
+      // Agregar tiempo del fichaje activo si existe
+      if (activeFichaje.value && elapsedTime.value) {
+        const parts = elapsedTime.value.split(':');
+        const h = parseInt(parts[0]);
+        const m = parseInt(parts[1]);
+        const s = parseInt(parts[2]);
+        totalMinutes += (h * 60 + m + s / 60);
+      }
+
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = Math.floor(totalMinutes % 60);
+      return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+    });
+
+    // Porcentaje de progreso semanal (sobre 40h - SOLO FICHAJES)
+    const progressPercentage = computed(() => {
+      let totalMinutes = 0;
+      
+      // Sumar SOLO fichajes de la semana
+      fichajesSemanales.value.forEach(fichaje => {
+        if (fichaje.entry_time && fichaje.exit_time) {
+          const [entryH, entryM, entryS = 0] = fichaje.entry_time.split(':').map(Number);
+          const [exitH, exitM, exitS = 0] = fichaje.exit_time.split(':').map(Number);
+          
+          const entrySeconds = entryH * 3600 + entryM * 60 + entryS;
+          const exitSeconds = exitH * 3600 + exitM * 60 + exitS;
+          const diffSeconds = exitSeconds - entrySeconds;
+          
+          if (diffSeconds > 0) {
+            totalMinutes += diffSeconds / 60;
+          }
+        }
+      });
+
+      // Agregar tiempo del fichaje activo
+      if (activeFichaje.value && elapsedTime.value) {
+        const parts = elapsedTime.value.split(':');
+        const h = parseInt(parts[0]);
+        const m = parseInt(parts[1]);
+        const s = parseInt(parts[2]);
+        totalMinutes += (h * 60 + m + s / 60);
+      }
+
+      const percentage = (totalMinutes / (40 * 60)) * 100;
+      return Math.min(percentage, 100);
+    });
 
     const calculateHours = (entry, exit) => {
       if (!entry || !exit) return '-';
@@ -595,6 +793,11 @@ export default {
     const saveEntry = async () => {
       loading.value = true;
       try {
+        // Para usuarios regulares, forzar el nombre del usuario logueado
+        if (!isSuperuser.value) {
+          form.value.name = userName.value;
+        }
+        
         if (editingEntry.value) {
           // Update existing entry
           const { error } = await supabase
@@ -759,9 +962,234 @@ export default {
       }
     };
 
+    const loadUsuarios = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('id, full_name, username')
+          .order('full_name', { ascending: true });
+
+        if (error) throw error;
+        usuarios.value = data || [];
+      } catch (error) {
+        console.error('Error carregant usuaris:', error);
+      }
+    };
+
+    // ========== FICHAJE RÁPIDO ==========
+    
+    // Cargar fichajes del día actual
+    const loadFichajesHoy = async () => {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const { data, error } = await supabase
+          .from('fichajes')
+          .select('*')
+          .eq('date', today)
+          .eq('name', userName.value)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        fichajesHoy.value = data || [];
+      } catch (error) {
+        console.error('Error carregant fitxatges d\'avui:', error);
+      }
+    };
+
+    // Cargar fichajes de toda la semana (lunes a hoy)
+    const loadFichajesSemanales = async () => {
+      try {
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay() + 1); // Lunes
+        const startDateStr = startOfWeek.toISOString().split('T')[0];
+        
+        const { data, error } = await supabase
+          .from('fichajes')
+          .select('*')
+          .eq('name', userName.value)
+          .gte('date', startDateStr)
+          .order('date', { ascending: true })
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        fichajesSemanales.value = data || [];
+      } catch (error) {
+        console.error('Error carregant fitxatges setmanals:', error);
+      }
+    };
+    
+    const updateElapsedTime = () => {
+      if (!activeFichaje.value) return;
+      
+      const [hours, minutes, seconds = 0] = activeFichaje.value.entry_time.split(':').map(Number);
+      const entryDate = new Date();
+      entryDate.setHours(hours, minutes, seconds, 0);
+      
+      const now = new Date();
+      const diff = now - entryDate;
+      
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      
+      elapsedTime.value = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
+    const startFichaje = async () => {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const seconds = now.getSeconds().toString().padStart(2, '0');
+      const today = now.toISOString().split('T')[0];
+      const entry_time = `${hours}:${minutes}:${seconds}`;
+      
+      loading.value = true;
+      try {
+        // Crear NUEVO fichaje (cada play crea un registro nuevo)
+        const { data: newFichaje, error: insertError } = await supabase
+          .from('fichajes')
+          .insert([{
+            date: today,
+            name: userName.value,
+            entry_time: entry_time,
+            exit_time: null
+          }])
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+
+        activeFichaje.value = {
+          id: newFichaje.id,
+          date: today,
+          name: userName.value,
+          entry_time: entry_time
+        };
+        
+        // Guardar en localStorage
+        localStorage.setItem('activeFichaje', JSON.stringify(activeFichaje.value));
+        
+        // Iniciar contador
+        timerInterval = setInterval(updateElapsedTime, 1000);
+        updateElapsedTime();
+        
+        // Recargar fichajes del día
+        await loadFichajesHoy();
+        await loadFichajesSemanales();
+        
+        showMessage('Fitxatge iniciat correctament!', 'success');
+      } catch (error) {
+        console.error('Error:', error);
+        showMessage('Error al iniciar el fitxatge: ' + error.message, 'error');
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    const stopFichaje = async () => {
+      if (!activeFichaje.value) return;
+      
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const seconds = now.getSeconds().toString().padStart(2, '0');
+      const exit_time = `${hours}:${minutes}:${seconds}`;
+      
+      loading.value = true;
+      try {
+        // Actualizar el fichaje existente con exit_time
+        const { error } = await supabase
+          .from('fichajes')
+          .update({ exit_time: exit_time })
+          .eq('id', activeFichaje.value.id);
+
+        if (error) throw error;
+        
+        // Limpiar fichaje activo
+        clearInterval(timerInterval);
+        activeFichaje.value = null;
+        elapsedTime.value = '00:00:00';
+        localStorage.removeItem('activeFichaje');
+        
+        // Recargar fichajes del día
+        await loadFichajesHoy();
+        await loadFichajesSemanales();
+        await carregarRegistres();
+        
+        showMessage('Fitxatge finalitzat i registrat correctament!', 'success');
+      } catch (error) {
+        console.error('Error:', error);
+        showMessage('Error al finalitzar el fitxatge: ' + error.message, 'error');
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    const loadActiveFichaje = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Primero intentar restaurar desde localStorage
+      const saved = localStorage.getItem('activeFichaje');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Verificar que el fichaje es de hoy
+        if (parsed.date === today) {
+          activeFichaje.value = parsed;
+          timerInterval = setInterval(updateElapsedTime, 1000);
+          updateElapsedTime();
+        } else {
+          // Limpiar si es de otro día
+          localStorage.removeItem('activeFichaje');
+        }
+      } else {
+        // Si no hay en localStorage, buscar en la BD si hay fichaje abierto
+        try {
+          const { data: openFichajes, error } = await supabase
+            .from('fichajes')
+            .select('*')
+            .eq('date', today)
+            .eq('name', userName.value)
+            .is('exit_time', null)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (!error && openFichajes && openFichajes.length > 0) {
+            // Hay un fichaje abierto, restaurarlo
+            const fichaje = openFichajes[0];
+            activeFichaje.value = {
+              id: fichaje.id,
+              date: fichaje.date,
+              name: fichaje.name,
+              entry_time: fichaje.entry_time
+            };
+            localStorage.setItem('activeFichaje', JSON.stringify(activeFichaje.value));
+            timerInterval = setInterval(updateElapsedTime, 1000);
+            updateElapsedTime();
+          }
+        } catch (error) {
+          console.error('Error buscant fitxatges oberts:', error);
+        }
+      }
+      
+      // Cargar fichajes de hoy
+      await loadFichajesHoy();
+      await loadFichajesSemanales();
+    };
+
     onMounted(() => {
       loadProyectos();
+      if (isSuperuser.value) {
+        loadUsuarios();
+      }
       carregarRegistres();
+      loadActiveFichaje();
+    });
+
+    onUnmounted(() => {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
     });
 
     return {
@@ -772,6 +1200,7 @@ export default {
       messageType,
       registres,
       proyectos,
+      usuarios,
       filterPeriod,
       filterProject,
       editingEntry,
@@ -781,12 +1210,21 @@ export default {
       registresPorUsuario,
       calculateUserTotalHours,
       timeOptions,
+      activeFichaje,
+      elapsedTime,
+      elapsedTimeFormatted,
+      todayHours,
+      weeklyHours,
+      progressPercentage,
+      startFichaje,
+      stopFichaje,
       saveEntry,
       editEntry,
       cancelEdit,
       deleteEntry,
       carregarRegistres,
       formatDate,
+      formatDateShort,
       calculateHours,
       logout
     };
