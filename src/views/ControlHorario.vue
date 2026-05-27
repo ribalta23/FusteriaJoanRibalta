@@ -258,16 +258,65 @@
                 {{ project.nombre }}
               </option>
             </select>
-            <select 
-              v-model="filterPeriod" 
-              @change="carregarRegistres"
-              class="w-full sm:w-auto px-3 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            <button
+              v-if="isSuperuser && filterProject !== 'all'"
+              @click="deleteMassive"
+              :disabled="registres.length === 0"
+              class="w-full sm:w-auto px-4 py-2 bg-red-700 text-white rounded-lg text-sm font-medium hover:bg-red-800 active:bg-red-900 transition disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              title="Eliminar tots els registres del projecte seleccionat"
             >
-              <option value="week">Aquesta setmana</option>
-              <option value="month">Aquest mes</option>
-              <option value="all">Tot l'historial</option>
-            </select>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Eliminar
+            </button>
+            <button
+              @click="exportToPDF"
+              :disabled="registres.length === 0"
+              class="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 active:bg-red-800 transition disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              title="Exportar a PDF"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              PDF
+            </button>
           </div>
+        </div>
+
+        <!-- Paginación superior -->
+        <div v-if="totalPages > 1" class="flex justify-center items-center gap-2 mb-4">
+          <button
+            @click="currentPage = 1"
+            :disabled="currentPage === 1"
+            class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            ««
+          </button>
+          <button
+            @click="currentPage--"
+            :disabled="currentPage === 1"
+            class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            «
+          </button>
+          <span class="px-4 py-2 text-sm font-medium text-gray-700">
+            Pàgina {{ currentPage }} de {{ totalPages }}
+          </span>
+          <button
+            @click="currentPage++"
+            :disabled="currentPage === totalPages"
+            class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            »
+          </button>
+          <button
+            @click="currentPage = totalPages"
+            :disabled="currentPage === totalPages"
+            class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            »»
+          </button>
         </div>
 
         <!-- Loading State -->
@@ -280,7 +329,7 @@
         <div v-else-if="registres.length > 0">
           <!-- Superuser: Grouped by User -->
           <div v-if="isSuperuser" class="space-y-6">
-            <div v-for="(userEntries, userNameKey) in registresPorUsuario" :key="userNameKey" class="border border-gray-200 rounded-xl overflow-hidden">
+            <div v-for="(userEntries, userNameKey) in paginatedRegistresPorUsuario" :key="userNameKey" class="border border-gray-200 rounded-xl overflow-hidden">
               <!-- User Header -->
               <div class="bg-orange-50 px-4 py-3 border-b border-orange-200">
                 <div class="flex justify-between items-center">
@@ -401,7 +450,7 @@
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="registre in registres" :key="registre.id" class="hover:bg-gray-50">
+                <tr v-for="registre in paginatedRegistres" :key="registre.id" class="hover:bg-gray-50">
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatDate(registre.date) }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ registre.name }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -427,7 +476,7 @@
 
           <!-- Mobile Cards (visible on mobile) -->
           <div class="lg:hidden space-y-3">
-            <div v-for="registre in registres" :key="registre.id" class="bg-white border border-gray-200 rounded-xl p-4 shadow hover:shadow-md transition">
+            <div v-for="registre in paginatedRegistres" :key="registre.id" class="bg-white border border-gray-200 rounded-xl p-4 shadow hover:shadow-md transition">
               <!-- Card Header -->
               <div class="flex justify-between items-start mb-3">
                 <div class="flex-1">
@@ -487,6 +536,41 @@
 
           </div>
 
+          <!-- Paginación inferior -->
+          <div v-if="totalPages > 1" class="flex justify-center items-center gap-2 mt-4">
+            <button
+              @click="currentPage = 1"
+              :disabled="currentPage === 1"
+              class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ««
+            </button>
+            <button
+              @click="currentPage--"
+              :disabled="currentPage === 1"
+              class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              «
+            </button>
+            <span class="px-4 py-2 text-sm font-medium text-gray-700">
+              Pàgina {{ currentPage }} de {{ totalPages }}
+            </span>
+            <button
+              @click="currentPage++"
+              :disabled="currentPage === totalPages"
+              class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              »
+            </button>
+            <button
+              @click="currentPage = totalPages"
+              :disabled="currentPage === totalPages"
+              class="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              »»
+            </button>
+          </div>
+
           <!-- Total Hours -->
           <div class="mt-4 sm:mt-6 flex justify-center sm:justify-end">
             <div class="bg-orange-600 text-white px-6 py-4 rounded-xl shadow-lg w-full sm:w-auto">
@@ -515,6 +599,8 @@
 import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { supabase } from '@/supabase';
 import { useRouter } from 'vue-router';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default {
   name: 'ControlHorario',
@@ -527,8 +613,9 @@ export default {
     const registres = ref([]);
     const proyectos = ref([]);
     const usuarios = ref([]);
-    const filterPeriod = ref('month');
     const filterProject = ref('all');
+    const currentPage = ref(1);
+    const itemsPerPage = ref(20);
     
     // Fichaje activo
     const activeFichaje = ref(null);
@@ -732,6 +819,56 @@ export default {
       return grouped;
     });
 
+    // Paginación
+    const paginatedRegistresPorUsuario = computed(() => {
+      if (!isSuperuser.value) return {};
+      
+      const allEntries = Object.entries(registresPorUsuario.value);
+      const start = (currentPage.value - 1) * itemsPerPage.value;
+      const end = start + itemsPerPage.value;
+      
+      // Paginar por registros individuales, no por usuarios
+      let allRecords = [];
+      allEntries.forEach(([userName, entries]) => {
+        entries.forEach(entry => {
+          allRecords.push({ userName, entry });
+        });
+      });
+      
+      const paginatedRecords = allRecords.slice(start, end);
+      
+      // Reagrupar
+      const regrouped = {};
+      paginatedRecords.forEach(({ userName, entry }) => {
+        if (!regrouped[userName]) {
+          regrouped[userName] = [];
+        }
+        regrouped[userName].push(entry);
+      });
+      
+      return regrouped;
+    });
+
+    const paginatedRegistres = computed(() => {
+      if (isSuperuser.value) return [];
+      
+      const start = (currentPage.value - 1) * itemsPerPage.value;
+      const end = start + itemsPerPage.value;
+      return registres.value.slice(start, end);
+    });
+
+    const totalPages = computed(() => {
+      if (isSuperuser.value) {
+        let totalRecords = 0;
+        Object.values(registresPorUsuario.value).forEach(entries => {
+          totalRecords += entries.length;
+        });
+        return Math.ceil(totalRecords / itemsPerPage.value);
+      } else {
+        return Math.ceil(registres.value.length / itemsPerPage.value);
+      }
+    });
+
     const calculateUserTotalHours = (userEntries) => {
       let totalMinutes = 0;
       
@@ -915,23 +1052,14 @@ export default {
           query = query.eq('name', userName.value);
         }
 
-        // Apply date filter
-        const now = new Date();
-        if (filterPeriod.value === 'week') {
-          const startOfWeek = new Date(now);
-          startOfWeek.setDate(now.getDate() - now.getDay());
-          startOfWeek.setHours(0, 0, 0, 0);
-          query = query.gte('date', startOfWeek.toISOString().split('T')[0]);
-        } else if (filterPeriod.value === 'month') {
-          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-          query = query.gte('date', startOfMonth.toISOString().split('T')[0]);
-        }
+        // Sin filtro de fecha - siempre mostrar todo
 
         const { data, error } = await query;
 
         if (error) throw error;
 
         registres.value = data || [];
+        currentPage.value = 1; // Reset a la primera página
       } catch (error) {
         console.error('Error carregant registres:', error);
         showMessage('Error al carregar registres: ' + error.message, 'error');
@@ -1177,6 +1305,288 @@ export default {
       await loadFichajesSemanales();
     };
 
+    const deleteMassive = async () => {
+      if (!isSuperuser.value || filterProject.value === 'all') {
+        showMessage('Selecciona un projecte específic per eliminar registres', 'error');
+        return;
+      }
+
+      // Obtener información del proyecto seleccionado
+      let projectInfo = '';
+      let confirmMessage = '';
+      
+      if (filterProject.value === 'none') {
+        projectInfo = 'sense projecte';
+        confirmMessage = `Estàs segur que vols eliminar TOTS els registres sense projecte?\n\n⚠️ Aquesta acció no es pot desfer!\n\nRegistres a eliminar: ${registres.value.length}`;
+      } else {
+        const project = proyectos.value.find(p => p.id === filterProject.value);
+        if (project) {
+          projectInfo = `del projecte "${project.nombre}"`;
+          confirmMessage = `Estàs segur que vols eliminar TOTS els registres del projecte "${project.nombre}"?\n\n⚠️ Aquesta acció no es pot desfer!\n\nRegistres a eliminar: ${registres.value.length}`;
+        }
+      }
+
+      if (!confirm(confirmMessage)) return;
+
+      // Doble confirmación para operaciones masivas
+      if (!confirm('⚠️ ÚLTIMA CONFIRMACIÓ!\n\nAixò eliminarà definitivament tots aquests registres. Continuar?')) return;
+
+      loading.value = true;
+      try {
+        // Construir la query de eliminación
+        let deleteQuery = supabase.from('time_entries').delete();
+
+        if (filterProject.value === 'none') {
+          // Eliminar registros sin proyecto
+          deleteQuery = deleteQuery.is('project_id', null);
+        } else {
+          // Eliminar registros del proyecto específico
+          deleteQuery = deleteQuery.eq('project_id', filterProject.value);
+        }
+
+        const { error, count } = await deleteQuery;
+
+        if (error) throw error;
+
+        showMessage(`S'han eliminat correctament tots els registres ${projectInfo}!`, 'success');
+        
+        // Resetear filtro y recargar
+        filterProject.value = 'all';
+        await carregarRegistres();
+      } catch (error) {
+        console.error('Error eliminant registres:', error);
+        showMessage('Error al eliminar els registres: ' + error.message, 'error');
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    const exportToPDF = () => {
+      const doc = new jsPDF();
+      
+      // Configuración
+      const isProjectFilter = filterProject.value !== 'all';
+      const selectedProject = isProjectFilter && filterProject.value !== 'none' 
+        ? proyectos.value.find(p => p.id === filterProject.value) 
+        : null;
+      
+      // Título del documento
+      doc.setFontSize(18);
+      doc.setTextColor(234, 88, 12); // Orange-600
+      doc.text('Control Horari - Fusteria Joan Ribalta', 14, 20);
+      
+      // Si es de un proyecto específico, mostrarlo en grande
+      if (selectedProject) {
+        doc.setFontSize(16);
+        doc.setTextColor(234, 88, 12);
+        doc.text(`Projecte: ${selectedProject.nombre}`, 14, 32);
+        doc.setFontSize(10);
+        doc.setTextColor(75, 85, 99);
+        doc.text(`Data generació: ${new Date().toLocaleDateString('ca-ES')}`, 14, 40);
+      } else {
+        // Información del filtro
+        doc.setFontSize(10);
+        doc.setTextColor(75, 85, 99);
+        let filterText = 'Tots els registres';
+        
+        if (filterProject.value === 'none') {
+          filterText = 'Registres sense projecte';
+        }
+        
+        doc.text(filterText, 14, 28);
+        doc.text(`Data generació: ${new Date().toLocaleDateString('ca-ES')}`, 14, 34);
+      }
+      
+      // Preparar datos según si es superusuario o no
+      let yPosition = selectedProject ? 48 : 42;
+      
+      if (isSuperuser.value) {
+        // Para superusuarios: agrupar por usuario
+        Object.entries(registresPorUsuario.value).forEach(([userName, userEntries], index) => {
+          if (index > 0) {
+            yPosition += 10; // Espacio entre usuarios
+          }
+          
+          // Nombre del usuario
+          doc.setFontSize(12);
+          doc.setTextColor(234, 88, 12);
+          doc.text(`${userName}`, 14, yPosition);
+          
+          // Total de horas del usuario
+          const userTotal = calculateUserTotalHours(userEntries);
+          doc.setFontSize(10);
+          doc.setTextColor(75, 85, 99);
+          doc.text(`Total: ${userTotal}`, 14, yPosition + 6);
+          
+          yPosition += 10;
+          
+          // Tabla de registros del usuario
+          let tableData;
+          let tableHead;
+          
+          if (selectedProject) {
+            // Si es de un proyecto específico, NO mostrar columna de proyecto
+            tableData = userEntries.map(registre => [
+              formatDate(registre.date),
+              registre.entry_time,
+              registre.exit_time || '-',
+              calculateHours(registre.entry_time, registre.exit_time),
+              registre.comment ? (registre.comment.length > 60 ? registre.comment.substring(0, 57) + '...' : registre.comment) : '-'
+            ]);
+            tableHead = [['Data', 'Entrada', 'Sortida', 'Hores', 'Comentari']];
+          } else {
+            // Mostrar columna de proyecto
+            tableData = userEntries.map(registre => [
+              formatDate(registre.date),
+              registre.proyectos ? registre.proyectos.nombre : '-',
+              registre.entry_time,
+              registre.exit_time || '-',
+              calculateHours(registre.entry_time, registre.exit_time),
+              registre.comment ? (registre.comment.length > 50 ? registre.comment.substring(0, 47) + '...' : registre.comment) : '-'
+            ]);
+            tableHead = [['Data', 'Projecte', 'Entrada', 'Sortida', 'Hores', 'Comentari']];
+          }
+          
+          autoTable(doc, {
+            startY: yPosition,
+            head: tableHead,
+            body: tableData,
+            theme: 'striped',
+            headStyles: { 
+              fillColor: [234, 88, 12], // Orange-600
+              textColor: [255, 255, 255],
+              fontSize: 9,
+              fontStyle: 'bold'
+            },
+            bodyStyles: {
+              fontSize: 8,
+              textColor: [31, 41, 55] // Gray-800
+            },
+            alternateRowStyles: {
+              fillColor: [249, 250, 251] // Gray-50
+            },
+            columnStyles: selectedProject ? {
+              0: { cellWidth: 25 }, // Data
+              1: { cellWidth: 22 }, // Entrada
+              2: { cellWidth: 22 }, // Sortida
+              3: { cellWidth: 20 }, // Hores
+              4: { cellWidth: 'auto' } // Comentari
+            } : {
+              0: { cellWidth: 25 }, // Data
+              1: { cellWidth: 35 }, // Projecte
+              2: { cellWidth: 20 }, // Entrada
+              3: { cellWidth: 20 }, // Sortida
+              4: { cellWidth: 18 }, // Hores
+              5: { cellWidth: 'auto' } // Comentari
+            },
+            margin: { top: 10 }
+          });
+          
+          yPosition = doc.lastAutoTable.finalY + 5;
+          
+          // Añadir nueva página si es necesario
+          if (yPosition > 250 && index < Object.entries(registresPorUsuario.value).length - 1) {
+            doc.addPage();
+            yPosition = 20;
+          }
+        });
+      } else {
+        // Para usuarios normales: lista simple
+        let tableData;
+        let tableHead;
+        
+        if (selectedProject) {
+          // Si es de un proyecto específico, NO mostrar columna de proyecto
+          tableData = registres.value.map(registre => [
+            formatDate(registre.date),
+            registre.entry_time,
+            registre.exit_time || '-',
+            calculateHours(registre.entry_time, registre.exit_time),
+            registre.comment ? (registre.comment.length > 60 ? registre.comment.substring(0, 57) + '...' : registre.comment) : '-'
+          ]);
+          tableHead = [['Data', 'Entrada', 'Sortida', 'Hores', 'Comentari']];
+        } else {
+          // Mostrar columna de proyecto
+          tableData = registres.value.map(registre => [
+            formatDate(registre.date),
+            registre.proyectos ? registre.proyectos.nombre : '-',
+            registre.entry_time,
+            registre.exit_time || '-',
+            calculateHours(registre.entry_time, registre.exit_time),
+            registre.comment ? (registre.comment.length > 50 ? registre.comment.substring(0, 47) + '...' : registre.comment) : '-'
+          ]);
+          tableHead = [['Data', 'Projecte', 'Entrada', 'Sortida', 'Hores', 'Comentari']];
+        }
+        
+        autoTable(doc, {
+          startY: yPosition,
+          head: tableHead,
+          body: tableData,
+          theme: 'striped',
+          headStyles: { 
+            fillColor: [234, 88, 12],
+            textColor: [255, 255, 255],
+            fontSize: 9,
+            fontStyle: 'bold'
+          },
+          bodyStyles: {
+            fontSize: 8,
+            textColor: [31, 41, 55]
+          },
+          alternateRowStyles: {
+            fillColor: [249, 250, 251]
+          },
+          columnStyles: selectedProject ? {
+            0: { cellWidth: 25 },
+            1: { cellWidth: 22 },
+            2: { cellWidth: 22 },
+            3: { cellWidth: 20 },
+            4: { cellWidth: 'auto' }
+          } : {
+            0: { cellWidth: 25 },
+            1: { cellWidth: 35 },
+            2: { cellWidth: 20 },
+            3: { cellWidth: 20 },
+            4: { cellWidth: 18 },
+            5: { cellWidth: 'auto' }
+          },
+          margin: { top: 10 }
+        });
+        
+        yPosition = doc.lastAutoTable.finalY;
+      }
+      
+      // Total general al final
+      yPosition += 10;
+      if (yPosition > 270) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      doc.setFontSize(12);
+      doc.setTextColor(234, 88, 12);
+      doc.setFillColor(234, 88, 12);
+      doc.rect(14, yPosition, 182, 10, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.text(`TOTAL HORES: ${totalHours.value}`, 20, yPosition + 7);
+      
+      // Generar nombre del archivo
+      let fileName = 'control-horari';
+      if (selectedProject) {
+        fileName += `-${selectedProject.nombre.toLowerCase().replace(/\s+/g, '-')}`;
+      } else if (filterProject.value === 'none') {
+        fileName += '-sense-projecte';
+      }
+      fileName += `-${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // Abrir el PDF en lugar de descargarlo
+      const pdfBlob = doc.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank');
+      
+      showMessage('PDF generat correctament!', 'success');
+    };
+
     onMounted(() => {
       loadProyectos();
       if (isSuperuser.value) {
@@ -1201,13 +1611,16 @@ export default {
       registres,
       proyectos,
       usuarios,
-      filterPeriod,
       filterProject,
+      currentPage,
+      totalPages,
       editingEntry,
       totalHours,
       userName,
       isSuperuser,
       registresPorUsuario,
+      paginatedRegistresPorUsuario,
+      paginatedRegistres,
       calculateUserTotalHours,
       timeOptions,
       activeFichaje,
@@ -1222,10 +1635,12 @@ export default {
       editEntry,
       cancelEdit,
       deleteEntry,
+      deleteMassive,
       carregarRegistres,
       formatDate,
       formatDateShort,
       calculateHours,
+      exportToPDF,
       logout
     };
   }
