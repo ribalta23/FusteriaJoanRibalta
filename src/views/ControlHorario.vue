@@ -988,13 +988,22 @@ export default {
       }
     };
 
+    // Helper para formatear tiempo de HH:MM:SS a HH:MM
+    const formatTimeForForm = (timeStr) => {
+      if (!timeStr) return '';
+      // Si ya está en formato HH:MM, devolverlo tal cual
+      if (timeStr.length === 5) return timeStr;
+      // Si está en formato HH:MM:SS, quitar los segundos
+      return timeStr.substring(0, 5);
+    };
+
     const editEntry = (registre) => {
       editingEntry.value = registre;
       form.value = {
         date: registre.date,
         name: registre.name,
-        entry_time: registre.entry_time,
-        exit_time: registre.exit_time || '',
+        entry_time: formatTimeForForm(registre.entry_time),
+        exit_time: formatTimeForForm(registre.exit_time) || '',
         comment: registre.comment || '',
         project_id: registre.project_id || null
       };
