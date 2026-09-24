@@ -6,10 +6,13 @@ import ControlHorario from '../views/ControlHorario.vue'
 import ControlUsuario from '../views/ControlUsuario.vue'
 import GestionImagenes from '../views/GestionImagenes.vue'
 import GestionUsuarios from '../views/GestionUsuarios.vue'
-import GestionProyectos from '../views/GestionProyectos.vue'
+import GeneracioInformes from '../views/GeneracioInformes.vue'
+import Calendari from '../views/Calendari.vue'
+import ProjectesDashboard from '../views/ProjectesDashboard.vue'
+import ProjecteFitxa from '../views/ProjecteFitxa.vue'
 import Login from '../views/Login.vue'
 import PrivacyPolicyView from '../views/PrivacyPolicyView.vue'
-import { supabase } from '@/supabase';
+import { isAuthenticated } from '@/api';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -49,15 +52,30 @@ const router = createRouter({
       component: GestionImagenes, 
       meta: { requiereAuth: true, requiresSuperuser: true } 
     },
-    { 
-      path: '/gestio-usuaris', 
-      component: GestionUsuarios, 
-      meta: { requiereAuth: true, requiresSuperuser: true } 
+    {
+      path: '/gestio-usuaris',
+      component: GestionUsuarios,
+      meta: { requiereAuth: true, requiresSuperuser: true }
     },
-    { 
-      path: '/gestio-projectes', 
-      component: GestionProyectos, 
-      meta: { requiereAuth: true, requiresSuperuser: true } 
+    {
+      path: '/informes',
+      component: GeneracioInformes,
+      meta: { requiereAuth: true, requiresSuperuser: true }
+    },
+    {
+      path: '/calendari',
+      component: Calendari,
+      meta: { requiereAuth: true }
+    },
+    {
+      path: '/projectes',
+      component: ProjectesDashboard,
+      meta: { requiereAuth: true }
+    },
+    {
+      path: '/projectes/:id',
+      component: ProjecteFitxa,
+      meta: { requiereAuth: true }
     },
     {
       path: '/privacitat',
@@ -67,21 +85,17 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach((to, from, next) => {
   const requiereAuth = to.matched.some(record => record.meta.requiereAuth);
   const requiresSuperuser = to.matched.some(record => record.meta.requiresSuperuser);
-  
+
   if (requiereAuth) {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) {
-      // Redirigir al login único
+    if (!isAuthenticated()) {
       next('/login');
     } else {
-      // Si requiere ser superusuario, verificar el rol
       if (requiresSuperuser) {
         const userRole = localStorage.getItem('userRole');
         if (userRole !== 'superusuario') {
-          // Si no es superusuario, redirigir a control horario
           next('/control-horario');
           return;
         }

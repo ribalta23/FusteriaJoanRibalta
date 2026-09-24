@@ -88,7 +88,7 @@
 
 <script>
 import { ref } from 'vue';
-import { supabase } from '@/supabase';
+import { login as apiLogin, fetchMe } from '@/api';
 import { useRouter } from 'vue-router';
 
 export default {
@@ -102,76 +102,23 @@ export default {
     const login = async () => {
       loading.value = true;
       error.value = '';
-      
+
       try {
-        // Primero buscar el email del usuario por su username
-        const { data: profile, error: profileError } = await supabase
-          .from('user_profiles')
-          .select('id, full_name, role, username')
-          .eq('username', username.value)
-          .single();
+        await apiLogin(username.value, password.value);
+        const me = await fetchMe();
 
-        if (profileError || !profile) {
-          error.value = 'Usuari no trobat';
-          loading.value = false;
-          return;
-        }
+        localStorage.setItem('userFullName', me.nombre || '');
+        localStorage.setItem('userRole', me.rol || 'usuario');
+        localStorage.setItem('userName', me.username || '');
+        localStorage.setItem('userId', me.id || '');
 
-        // Obtener el email del usuario desde auth.users
-        const { data: users, error: usersError } = await supabase.rpc('get_user_email_by_id', { user_id: profile.id });
-        
-        if (usersError || !users) {
-          // Fallback: intentar obtener la sesión actual o buscar por RPC
-          const { data: usersList } = await supabase.rpc('get_all_users_with_profiles');
-          const userWithEmail = usersList?.find(u => u.id === profile.id);
-          
-          if (!userWithEmail?.email) {
-            error.value = 'No es pot obtenir el correu de l\'usuari';
-            loading.value = false;
-            return;
-          }
-          
-          // Hacer login con el email encontrado
-          const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({
-            email: userWithEmail.email,
-            password: password.value,
-          });
-          
-          if (loginError) {
-            error.value = 'Contrasenya incorrecta';
-            loading.value = false;
-            return;
-          }
-        } else {
-          // Hacer login con el email obtenido
-          const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({
-            email: users,
-            password: password.value,
-          });
-          
-          if (loginError) {
-            error.value = 'Contrasenya incorrecta';
-            loading.value = false;
-            return;
-          }
-        }
-
-        // Guardar información en localStorage
-        localStorage.setItem('userFullName', profile.full_name || '');
-        localStorage.setItem('userRole', profile.role || 'usuario');
-        localStorage.setItem('userName', profile.username || '');
-
-        error.value = '';
-        
-        // Redirigir según el rol
-        const userRole = profile?.role || 'usuario';
-        if (userRole === 'superusuario') {
+        if (me.rol === 'superusuario') {
           router.push('/area-privada');
         } else {
           router.push('/control-horario');
         }
       } catch (err) {
-        error.value = 'Error al iniciar sessió';
+        error.value = 'Usuari o contrasenya incorrectes';
         console.error(err);
       } finally {
         loading.value = false;

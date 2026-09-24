@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue';
 import HeaderComponent from '@/components/HeaderComponent.vue';
 import FooterComponent from '@/components/FooterComponent.vue';
 import { useSectionDetection } from '@/utils/sectionDetection';
-import { supabase } from '../supabase';
+import { api } from '../api';
 
 const folderStructure = ref({
   rootImages: [],
@@ -15,86 +15,41 @@ const selectedImage = ref(null);
 
 const { activeSection } = useSectionDetection();
 
-const BUCKET_NAME = 'fotos';
 // Folder to exclude from album view
 const EXCLUDED_FOLDERS = ['slider'];
+const IMAGE_REGEX = /\.(jpeg|jpg|png|gif|webp)$/i;
 
 const fetchImages = async () => {
   try {
     loading.value = true;
     error.value = null;
-    
-    // Listar todos los archivos en el bucket raíz
-    const { data: rootFiles, error: listError } = await supabase
-      .storage
-      .from(BUCKET_NAME)
-      .list('', { sortBy: { column: 'name', order: 'asc' } });
-    
-    if (listError) throw listError;
-    
-    // Separar carpetas e imágenes
-    const folders = rootFiles.filter(item => item.id === null && !EXCLUDED_FOLDERS.includes(item.name));
-    const imageFiles = rootFiles.filter(file => 
-      !file.id && file.name.match(/\.(jpeg|jpg|png|gif|webp)$/i)
-    );
-    
-    // Procesar imágenes raíz
-    const rootImagePromises = imageFiles.map(async (file) => {
-      const { data: { publicUrl } } = supabase
-        .storage
-        .from(BUCKET_NAME)
-        .getPublicUrl(file.name);
-        
-      return {
-        name: file.name,
-        url: publicUrl
-      };
-    });
-    
-    folderStructure.value.rootImages = await Promise.all(rootImagePromises);
-    
+
+    // Listar todo el contenido en la raíz
+    const root = await api.get('/storage/list');
+
+    folderStructure.value.rootImages = root.files
+      .filter(f => IMAGE_REGEX.test(f.name))
+      .map(f => ({ name: f.name, url: f.url }));
+
+    const folders = root.folders.filter(name => !EXCLUDED_FOLDERS.includes(name));
+
     // Procesar cada carpeta
-    for (const folder of folders) {
+    for (const folderName of folders) {
       try {
-        // Listar contenido de la carpeta
-        const { data: folderFiles, error: folderError } = await supabase
-          .storage
-          .from(BUCKET_NAME)
-          .list(folder.name, { sortBy: { column: 'name', order: 'asc' } });
-        
-        if (folderError) throw folderError;
-        
-        // Filtrar solo imágenes
-        const folderImageFiles = folderFiles.filter(file => 
-          file.name.match(/\.(jpeg|jpg|png|gif|webp)$/i)
-        );
-        
-        // Obtener URLs para imágenes de la carpeta
-        const folderImagesPromises = folderImageFiles.map(async (file) => {
-          const { data: { publicUrl } } = supabase
-            .storage
-            .from(BUCKET_NAME)
-            .getPublicUrl(`${folder.name}/${file.name}`);
-            
-          return {
-            name: file.name,
-            url: publicUrl,
-            path: `${folder.name}/${file.name}`
-          };
-        });
-        
-        const folderImages = await Promise.all(folderImagesPromises);
-        
+        const folderContent = await api.get('/storage/list', { prefix: folderName });
+        const folderImages = folderContent.files
+          .filter(f => IMAGE_REGEX.test(f.name))
+          .map(f => ({ name: f.name, url: f.url, path: f.path }));
+
         // Solo añadir carpetas que contienen imágenes
         if (folderImages.length > 0) {
-          folderStructure.value.folders[folder.name] = folderImages;
+          folderStructure.value.folders[folderName] = folderImages;
         }
-        
       } catch (folderErr) {
-        console.error(`Error al cargar la carpeta ${folder.name}:`, folderErr);
+        console.error(`Error al cargar la carpeta ${folderName}:`, folderErr);
       }
     }
-    
+
   } catch (err) {
     console.error('Error fetching images:', err);
     error.value = err.message || 'Error al cargar imágenes';

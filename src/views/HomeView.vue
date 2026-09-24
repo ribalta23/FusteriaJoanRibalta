@@ -4,7 +4,7 @@ import { quiSomData, serveisData } from '@/data/websiteData';
 import HeaderComponent from '@/components/HeaderComponent.vue';
 import FooterComponent from '@/components/FooterComponent.vue';
 import { useSectionDetection } from '@/utils/sectionDetection';
-import { supabase } from '../supabase';
+import { api } from '../api';
 import { useRoute } from 'vue-router';
 
 const formData = ref({
@@ -26,34 +26,13 @@ const slideInterval = ref(null);
 const fetchSliderImages = async () => {
   try {
     sliderLoading.value = true;
-    
-    // List all files in the slider folder
-    const { data: files, error } = await supabase
-      .storage
-      .from('fotos')
-      .list('slider', { sortBy: { column: 'name', order: 'asc' } });
-    
-    if (error) throw error;
-    
+
+    const data = await api.get('/storage/list', { prefix: 'slider' });
+
     // Filter only image files
-    const imageFiles = files.filter(file => 
-      file.name.match(/\.(jpeg|jpg|png|gif|webp)$/i)
-    );
-    
-    // Get public URLs for each image
-    const imagePromises = imageFiles.map(async (file) => {
-      const { data: { publicUrl } } = supabase
-        .storage
-        .from('fotos')
-        .getPublicUrl(`slider/${file.name}`);
-        
-      return {
-        name: file.name,
-        url: publicUrl
-      };
-    });
-    
-    sliderImages.value = await Promise.all(imagePromises);
+    sliderImages.value = data.files
+      .filter(file => file.name.match(/\.(jpeg|jpg|png|gif|webp)$/i))
+      .map(file => ({ name: file.name, url: file.url }));
   } catch (err) {
     console.error('Error fetching slider images:', err);
   } finally {
